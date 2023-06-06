@@ -38,26 +38,31 @@ public class RequestHandler extends Thread {
             }
 
             String[] tokens = line.split(" ");
+            int contentLength = 0;
 
             while(!line.equals("")) {
                 line = br.readLine();
                 log.debug("header = {}", line);
+                if (line.contains("Content-Length")) {
+                    contentLength = getContentLength(line);
+                }
             }
 
             String url = tokens[1];
-            if(url.startsWith("/user/create")) {
-                int index = url.indexOf("?");
-                String queryString = url.substring(index + 1);
-                log.debug("queryString = {}", queryString);
-                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
+            if("/user/create".equals(url)) {
+                String body = IOUtils.readData(br, contentLength);
+                Map<String, String> params = HttpRequestUtils.parseQueryString(body);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
                 log.debug("user = {}", user);
-            } else {
                 DataOutputStream dos = new DataOutputStream(out);
-                byte[] body = Files.readAllBytes(new File("./webapp" + tokens[1]).toPath());
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+                response302Header(dos,"/index.html");
             }
+
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+            response200Header(dos, body.length);
+            responseBody(dos, body);
+
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -74,11 +79,15 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void response302Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private int getContentLength(String line) {
+        String[] headerTokens = line.split(":");
+        return Integer.parseInt(headerTokens[1].trim());
+    }
+
+    private void response302Header(DataOutputStream dos, String url) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
+            dos.writeBytes("Location: " + url + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
