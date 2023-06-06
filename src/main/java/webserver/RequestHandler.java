@@ -21,7 +21,6 @@ public class RequestHandler extends Thread {
     }
 
     public void run() {
-        User user = null;
         log.debug("New Client Connect! Connected IP : {}, Port : {}", connection.getInetAddress(),
                 connection.getPort());
 
@@ -45,12 +44,20 @@ public class RequestHandler extends Thread {
                 log.debug("header = {}", line);
             }
 
-            DataOutputStream dos = new DataOutputStream(out);
-
-            // response body
-            byte[] body = Files.readAllBytes(new File("./webapp" + tokens[1]).toPath());
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            String url = tokens[1];
+            if(url.startsWith("/user/create")) {
+                int index = url.indexOf("?");
+                String queryString = url.substring(index + 1);
+                log.debug("queryString = {}", queryString);
+                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
+                User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
+                log.debug("user = {}", user);
+            } else {
+                DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = Files.readAllBytes(new File("./webapp" + tokens[1]).toPath());
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
         } catch (IOException e) {
             log.error(e.getMessage());
         }
