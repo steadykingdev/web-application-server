@@ -34,64 +34,21 @@ public class RequestHandler extends Thread {
 
             log.info("line = {}", line);
 
-            String[] tokens = line.split(" ");
-            String httpMethod = tokens[0];
-            String url = tokens[1];
             if (line == null) {
                 return;
             }
 
-            log.debug("httpMethod = {}", httpMethod);
-            log.debug("url = {}", url);
+            String[] tokens = line.split(" ");
 
-            // get 회원가입
-//            String[] urlSplit = url.split("\\?");
-
-//            if (urlSplit[0].equals("/user/create")) {
-//                String[] queryString = urlSplit[1].split(" ");
-//                Map<String, String> queryMap = HttpRequestUtils.parseQueryString(queryString[0]);
-//                user = new User(queryMap.get("userId"), queryMap.get("password"), queryMap.get("name"), queryMap.get("email"));
-//            }
-//
-//            log.debug("get request user = {}", user);
-
-            int contentLength = 0;
-
-            // header
-            while (!line.equals("")) {
+            while(!line.equals("")) {
                 line = br.readLine();
-                log.debug("header : {}", line);
-                if(line.contains("Content-Length")) {
-                    String[] contentLengthSplit = line.split(" ");
-                    contentLength = Integer.parseInt(contentLengthSplit[1]);
-                }
+                log.debug("header = {}", line);
             }
-
-            // post 회원가입
-            if (httpMethod.equals("POST") && url.equals("/user/create")) {
-                String body = IOUtils.readData(br, contentLength);
-                log.debug("body = {}", body);
-
-                Map<String, String> queryMap = HttpRequestUtils.parseQueryString(body);
-                user = new User(queryMap.get("userId"), queryMap.get("password"), queryMap.get("name"), queryMap.get("email"));
-
-                byte[] redirectPath = Files.readAllBytes(new File("./webapp/index.html").toPath());
-
-                DataOutputStream dos = new DataOutputStream(out);
-
-                response302Header(dos, redirectPath.length);
-                responseBody(dos, redirectPath);
-
-                log.debug("user = {}", user);
-
-                return;
-            }
-
-            // response body
-            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
 
             DataOutputStream dos = new DataOutputStream(out);
 
+            // response body
+            byte[] body = Files.readAllBytes(new File("./webapp" + tokens[1]).toPath());
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
